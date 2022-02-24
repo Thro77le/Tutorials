@@ -1,5 +1,6 @@
 pragma solidity ^0.7.0;
 
+// @audit-issue - unchecked arithmetic with compiler <0.8.0
 contract Bank {
     // mapping from a user to its balance
     mapping (address => uint256) private funds;
@@ -11,33 +12,34 @@ contract Bank {
 		funds[msg.sender] += amount;
 		totalFunds += amount;
     }
-    
-    // 
+
+    // @audit-issue - when msg.sender == to, sender is credited with net +amount
     function transfer(address to, uint256 amount) public {
 		require(funds[msg.sender] > amount);
 		uint256 fundsTo = funds[to];
 		funds[msg.sender] -= amount;
-		funds[to] = fundsTo + amount;		
+		funds[to] = fundsTo + amount;
     }
 
     // withdraw the total balance of user into its personal wallet address
     function withdraw() public returns (bool success)  {
 		uint256 amount = getFunds(msg.sender);
 		funds[msg.sender] = 0;
+		// @audit-issue - No success check
 		success = msg.sender.send(amount);
-		totalFunds -=amount;
+		totalFunds -= amount;
     }
-	
+
     // retrieves the user's recorded balance in the bank
 	function getFunds(address account) public view returns (uint256) {
 		return funds[account];
 	}
-	
+
     // retrieves the total funds that the bank stores
 	function getTotalFunds() public view returns (uint256) {
 		return totalFunds;
 	}
-	
+
     // retrieves the account's ETH balance in its personal wallet address
 	function getEthBalance(address account) public view returns (uint256){
 		return account.balance;
