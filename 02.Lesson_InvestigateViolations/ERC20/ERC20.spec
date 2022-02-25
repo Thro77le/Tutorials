@@ -10,9 +10,13 @@ rule integrityOfTransfer(address recipient, uint256 amount) {
 	env e;
 	uint256 balanceSenderBefore = balanceOf(e, e.msg.sender);
 	uint256 balanceRecipientBefore = balanceOf(e, recipient);
+
 	transfer(e, recipient, amount);
 
-	assert balanceRecipientBefore + balanceSenderBefore == balanceOf(e, e.msg.sender) + balanceOf(e, recipient), "the total funds before and after a transfer should remain the constant";
+	uint256 balanceSenderAfter = balanceOf(e, e.msg.sender);
+	uint256 balanceRecipientAfter = balanceOf(e, recipient);
+
+	assert balanceRecipientBefore + balanceSenderBefore == balanceSenderAfter + balanceRecipientAfter, "the total funds before and after a transfer should remain the constant";
 }
 
 
@@ -21,9 +25,12 @@ rule integrityOfTransferFrom(address owner, address recipient, uint256 amount) {
 	env e;
     require owner != recipient; // why is that necessary? try commenting this line out and see what happens
 	uint256 allowanceBefore = allowance(e, owner, e.msg.sender);
+
 	transferFrom(e, owner, recipient, amount);
+
 	uint256 allowanceAfter = allowance(e, owner, e.msg.sender);
-    
+
+    //Note - Why not `allowanceBefore == allowanceAfter + amount` ?
 	assert allowanceBefore >= allowanceAfter, "allowance musn't increase after using the allowance to pay on behalf of somebody else";
 }
 
@@ -32,7 +39,9 @@ rule integrityOfTransferFrom(address owner, address recipient, uint256 amount) {
 rule integrityOfIncreaseAllowance(address spender, uint256 amount) {
 	env e;
 	uint256 allowanceBefore = allowance(e, e.msg.sender, spender);
+
 	increaseAllowance(e, spender, amount);
+
 	uint256 allowanceAfter = allowance(e, e.msg.sender, spender);
 
 	assert amount > 0 => (allowanceAfter > allowanceBefore), "allowance did not increase";
@@ -45,10 +54,12 @@ rule balanceChangesFromCertainFunctions(method f, address user){
     env e;
     calldataarg args;
     uint256 userBalanceBefore = balanceOf(e, user);
+
     f(e, args);
+
     uint256 userBalanceAfter = balanceOf(e, user);
 
-    assert userBalanceBefore != userBalanceAfter => 
+    assert userBalanceBefore != userBalanceAfter =>
         (f.selector == transfer(address, uint256).selector ||
          f.selector == transferFrom(address, address, uint256).selector ||
          f.selector == mint(address, uint256).selector ||
@@ -59,16 +70,22 @@ rule balanceChangesFromCertainFunctions(method f, address user){
 
 // Checks that the totalSupply of the token is at least equal to a single user's balance
 // This rule breaks also on a fixed version of ERC20 -
-// why? understand the infeasible state that the rule start with 
+// why? understand the infeasible state that the rule start with
 rule totalSupplyNotLessThanSingleUserBalance(method f, address user) {
+    //Note - This rule is too permissive - it will fail for a good reason
+    //     - it allows to start from state where total sum of users is greater than totalSupply variable
 	env e;
 	calldataarg args;
 	uint256 totalSupplyBefore = totalSupply(e);
     uint256 userBalanceBefore = balanceOf(e, user);
+
     f(e, args);
+
     uint256 totalSupplyAfter = totalSupply(e);
     uint256 userBalanceAfter = balanceOf(e, user);
-	assert totalSupplyBefore >= userBalanceBefore => 
+
+    //Note - isn't it more sane to add `require(totalSupplyBefore >= userBalanceBefore)` before f() call ?
+	assert totalSupplyBefore >= userBalanceBefore =>
             totalSupplyAfter >= userBalanceAfter,
         "a user's balance is exceeding the total supply of token";
 }

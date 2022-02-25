@@ -18,7 +18,7 @@ import "./IBorda.sol";
 contract Borda is IBorda {
 
     using SafeMath for uint256;
-  
+
     // a list of voters with some data on them.
     mapping (address => Voters) _voters;
     // voters black list - true if a voter is blacklisted
@@ -27,8 +27,8 @@ contract Borda is IBorda {
     mapping (address => Contenders) _contenders;
     // current winner
     address winner;
-    // current max points 
-    uint256 pointsOfWinner; 
+    // current max points
+    uint256 pointsOfWinner;
 
     constructor() public {
         winner = address(0);
@@ -60,7 +60,9 @@ contract Borda is IBorda {
     }
 
     function registerVoter(uint8 age) external override returns (bool) {
-        require (!_contenders[msg.sender].registered, "you are already registered");
+        //Note - the require was checking if address is registered as contender
+        //       but it should check if address is registered as voter
+        require (!_voters[msg.sender].registered, "you are already registered");
         _voters[msg.sender] = Voters({age: age, registered: true, voted: false, vote_attempts: 0, black_listed: false});
         return true;
     }
@@ -75,13 +77,13 @@ contract Borda is IBorda {
         require (_voters[msg.sender].registered, "you are not registered. before you vote you have to register yourself");
         require (_contenders[first].registered && _contenders[second].registered && _contenders[third].registered, "one or more of the specified addresses aren't registered as contenders");
         require ( first != second && first != third && second != third, "you've tried to vote for the same more than once");
-        
+
         Voters memory voter_details = _voters[msg.sender];
         _voters[msg.sender].vote_attempts = voter_details.vote_attempts.safeAdd(1);
         if (voter_details.voted){
            require(voter_details.vote_attempts >= 3, "you've already voted. If you reach 3 attempts you will be black listed");
            if (!voter_details.black_listed){
-                _blackList.push(msg.sender); 
+                _blackList.push(msg.sender);
                 _voters[msg.sender].black_listed = true;
            }
            assert(false);
@@ -91,7 +93,7 @@ contract Borda is IBorda {
         voteTo(first, 3);
         voteTo(second, 2);
         voteTo(third, 1);
-        
+
         return true;
     }
 

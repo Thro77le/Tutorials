@@ -183,7 +183,7 @@ contract ERC20 is IERC20, IERC20Metadata {
         require(
             currentAllowance >= amount,
             "ERC20: transfer amount exceeds allowance"
-        ); 
+        );
         unchecked {
             _approve(sender, msg.sender, currentAllowance - amount);
         }
@@ -214,7 +214,7 @@ contract ERC20 is IERC20, IERC20Metadata {
             msg.sender,
             spender,
             _allowances[msg.sender][spender] + addedValue
-        ); 
+        );
         return true;
     }
 
@@ -277,7 +277,7 @@ contract ERC20 is IERC20, IERC20Metadata {
         require(
             senderBalance >= amount,
             "ERC20: transfer amount exceeds balance"
-        ); 
+        );
         unchecked {
             _balances[sender] = senderBalance - amount;
         }

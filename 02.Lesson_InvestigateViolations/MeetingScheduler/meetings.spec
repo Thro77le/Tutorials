@@ -1,6 +1,6 @@
 /*  Representing enums
 
-    enums are supported by the Certora Verification Language (CVL), 
+    enums are supported by the Certora Verification Language (CVL),
     according to their low level representation - uint8.
     in our case:
         -UNINITIALIZED = 0
@@ -37,12 +37,17 @@ rule startOnTime(method f, uint256 meetingId) {
 	env e;
 	calldataarg args;
 	uint8 stateBefore = getStateById(e, meetingId);
+	//Note - precondition filters out inccorect starting state
+	//     - start tiem should be stricly less than end time
+	//Note - isn't it better to add scheduleMeeting(args...) instead of precodnition?
+	require(getStartTimeById(e, meetingId) < getEndTimeById(e, meetingId));
+
 	f(e, args); // call only non reverting paths to any function on any arguments.
+
 	uint8 stateAfter = getStateById(e, meetingId);
-    
+
 	assert (stateBefore == 1 && stateAfter == 2) => getStartTimeById(e, meetingId) <= e.block.timestamp, "started a meeting before the designated starting time.";
 	assert (stateBefore == 1 && stateAfter == 2) => getEndTimeById(e, meetingId) > e.block.timestamp, "started a meeting after the designated end time.";
-	
 }
 
 
@@ -52,10 +57,15 @@ rule checkStartedToStateTransition(method f, uint256 meetingId) {
 	env e;
 	calldataarg args;
 	uint8 stateBefore = getStateById(e, meetingId);
+
 	f(e, args);
-	
-	assert (stateBefore == 2 => (getStateById(e, meetingId) == 2 || getStateById(e, meetingId) == 4)), "the status of the meeting changed from STARTED to an invalid state";
-	assert ((stateBefore == 2 && getStateById(e, meetingId) == 4) => f.selector == endMeeting(uint256).selector), "the status of the meeting changed from STARTED to ENDED through a function other then endMeeting()";
+
+	uint8 stateAfter = getStateById(e, meetingId);
+	//Note - wrong rule: 4 is CANCELLED, should be (ENDED)
+	// assert (stateBefore == 2 => (stateAfter == 2 || stateAfter == 4)), "the status of the meeting changed from STARTED to an invalid state";
+	// assert ((stateBefore == 2 && stateAfter == 4) => f.selector == endMeeting(uint256).selector), "the status of the meeting changed from STARTED to ENDED through a function other then endMeeting()";
+	assert (stateBefore == 2 => (stateAfter == 2 || stateAfter == 3)), "the status of the meeting changed from STARTED to an invalid state";
+	assert ((stateBefore == 2 && stateAfter == 3) => f.selector == endMeeting(uint256).selector), "the status of the meeting changed from STARTED to ENDED through a function other then endMeeting()";
 }
 
 
@@ -66,11 +76,13 @@ rule checkPendingToCancelledOrStarted(method f, uint256 meetingId) {
 	env e;
 	calldataarg args;
 	uint8 stateBefore = getStateById(e, meetingId);
+
 	f(e, args);
-	
-	assert (stateBefore == 1 => (getStateById(e, meetingId) == 1 || getStateById(e, meetingId) == 2 || getStateById(e, meetingId) == 4)), "invalidation of the state machine";
-	assert ((stateBefore == 1 && getStateById(e, meetingId) == 2) => f.selector == startMeeting(uint256).selector), "the status of the meeting changed from PENDING to STARTED through a function other then startMeeting()";
-	assert ((stateBefore == 1 && getStateById(e, meetingId) == 4) => f.selector == cancelMeeting(uint256).selector), "the status of the meeting changed from PENDING to CANCELLED through a function other then cancelMeeting()";
+
+	uint8 stateAfter = getStateById(e, meetingId);
+	assert (stateBefore == 1 => (stateAfter == 1 || stateAfter == 2 || stateAfter == 4)), "invalidation of the state machine";
+	assert ((stateBefore == 1 && stateAfter == 2) => f.selector == startMeeting(uint256).selector), "the status of the meeting changed from PENDING to STARTED through a function other then startMeeting()";
+	assert ((stateBefore == 1 && stateAfter == 4) => f.selector == cancelMeeting(uint256).selector), "the status of the meeting changed from PENDING to CANCELLED through a function other then cancelMeeting()";
 }
 
 
@@ -79,8 +91,13 @@ rule monotonousIncreasingNumOfParticipants(method f, uint256 meetingId) {
 	env e;
 	calldataarg args;
 	uint256 numOfParticipantsBefore = getNumOfParticipents(e, meetingId);
-	f(e, args);
-    uint256 numOfParticipantsAfter = getNumOfParticipents(e, meetingId);
+	uint256 stateBefore = getStateById(e, meetingId);
+	//Note - precondition filters out inccorect startiing state
+	//     - if there are partcipants then meeting cannot be UNINITIALIZED
+	require(numOfParticipantsBefore > 0 => stateBefore != 0);
 
+	f(e, args);
+
+    uint256 numOfParticipantsAfter = getNumOfParticipents(e, meetingId);
 	assert numOfParticipantsBefore <= numOfParticipantsAfter, "the number of participants decreased as a result of a function call";
 }

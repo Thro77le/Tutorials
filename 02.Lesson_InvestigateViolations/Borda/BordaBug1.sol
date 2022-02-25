@@ -18,7 +18,7 @@ import "./IBorda.sol";
 contract Borda is IBorda {
 
     using SafeMath for uint256;
-  
+
     // a list of voters with some data on them.
     mapping (address => Voters) _voters;
     // voters black list - true if a voter is blacklisted
@@ -27,8 +27,8 @@ contract Borda is IBorda {
     mapping (address => Contenders) _contenders;
     // current winner
     address winner;
-    // current max points 
-    uint256 pointsOfWinner; 
+    // current max points
+    uint256 pointsOfWinner;
 
     constructor() public {
         winner = address(0);
@@ -74,24 +74,29 @@ contract Borda is IBorda {
     function vote(address first, address second, address third) public override returns(bool) {
         require (_voters[msg.sender].registered, "you are not registered. before you vote you have to register yourself");
         require (_contenders[first].registered && _contenders[second].registered && _contenders[third].registered, "one or more of the specified addresses aren't registered as contenders");
+        //Note - you only need 2 != checks (saves gas :))
         require ( first != second && first != third && second != third, "you've tried to vote for the same more than once");
-        
+
         Voters memory voter_details = _voters[msg.sender];
         _voters[msg.sender].vote_attempts = voter_details.vote_attempts.safeAdd(1);
         if (voter_details.voted){
            require(voter_details.vote_attempts >= 3, "you've already voted. If you reach 3 attempts you will be black listed");
            if (!voter_details.black_listed){
-                _blackList.push(msg.sender); 
+                _blackList.push(msg.sender);
                 _voters[msg.sender].black_listed = true;
            }
            assert(false);
         }
 
         _voters[msg.sender].voted = true;
+        //Note - Incorrect points distribution
+        // voteTo(first, 3);
+        // voteTo(second, 3);
+        // voteTo(third, 3);
         voteTo(first, 3);
-        voteTo(second, 3);
-        voteTo(third, 3);
-        
+        voteTo(second, 2);
+        voteTo(third, 1);
+
         return true;
     }
 
