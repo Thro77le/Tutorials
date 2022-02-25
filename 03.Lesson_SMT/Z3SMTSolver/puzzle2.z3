@@ -1,0 +1,6 @@
+(declare-const p Bool)
+(declare-const q Bool)
+(define-fun equation1 () Bool (= (and p q) p))
+(define-fun equation2 () Bool (=> p q))
+(assert (not (= equation1 equation2)))
+(check-sat)

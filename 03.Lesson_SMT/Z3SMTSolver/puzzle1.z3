@@ -1,0 +1,8 @@
+(declare-const a Int)
+(declare-const b Int)
+(declare-const c Int)
+(assert (= 10 (+ a a)))
+(assert (= 12 (+ b (* a b))))
+(assert (= a (- (* a b) (* c a))))
+(check-sat)
+(get-model)
