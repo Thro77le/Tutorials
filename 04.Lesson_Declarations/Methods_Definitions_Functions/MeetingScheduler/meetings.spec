@@ -1,4 +1,5 @@
 methods {
+    getMeetingId(uint256) returns (uint8) envfree
     getStateById(uint256) returns (uint8) envfree
     getStartTimeById(uint256) returns (uint256) envfree
     getEndTimeById(uint256) returns (uint256) envfree
@@ -11,11 +12,44 @@ methods {
     joinMeeting(uint256) envfree
 }
 
-definition is_uninitialized(uint8 state) returns bool = state == 0;
-definition is_pending(uint8 state) returns bool = state == 1;
-definition is_started(uint8 state) returns bool = state == 2;
-definition is_ended(uint8 state) returns bool = state == 3;
-definition is_cancelled(uint8 state) returns bool = state == 4;
+definition meetingUninitialized(uint256 meetingId) returns bool =
+    getStateById(meetingId) == 0 &&
+    getStartTimeById(meetingId) == 0 &&
+    getEndTimeById(meetingId) == 0 &&
+    getNumOfParticipents(meetingId) == 0 &&
+    getOrganizer(meetingId) == 0;
+
+definition meetingPending(uint256 meetingId) returns bool =
+    getStateById(meetingId) == 1 &&
+    getStartTimeById(meetingId) != 0 &&
+    getEndTimeById(meetingId) != 0 &&
+    getStartTimeById(meetingId) < getEndTimeById(meetingId) &&
+    getNumOfParticipents(meetingId) == 0 &&
+    getOrganizer(meetingId) != 0;
+
+definition meetingStarted(uint256 meetingId) returns bool =
+    getStateById(meetingId) == 2 &&
+    getStartTimeById(meetingId) != 0 &&
+    getEndTimeById(meetingId) != 0 &&
+    getStartTimeById(meetingId) < getEndTimeById(meetingId) &&
+    getNumOfParticipents(meetingId) >= 0 &&
+    getOrganizer(meetingId) != 0;
+
+definition meetingEnded(uint256 meetingId) returns bool =
+    getStateById(meetingId) == 3 &&
+    getStartTimeById(meetingId) != 0 &&
+    getEndTimeById(meetingId) != 0 &&
+    getStartTimeById(meetingId) < getEndTimeById(meetingId) &&
+    getNumOfParticipents(meetingId) >= 0 &&
+    getOrganizer(meetingId) != 0;
+
+definition meetingCancelled(uint256 meetingId) returns bool =
+    getStateById(meetingId) == 4 &&
+    getStartTimeById(meetingId) != 0 &&
+    getEndTimeById(meetingId) != 0 &&
+    getStartTimeById(meetingId) < getEndTimeById(meetingId) &&
+    getNumOfParticipents(meetingId) == 0 &&
+    getOrganizer(meetingId) != 0;
 
 	/*  Representing enums
 
@@ -54,15 +88,15 @@ rule startOnTime(method f, uint256 meetingId) {
 	calldataarg args;
 	uint8 stateBefore = getStateById(meetingId);
 
+    require meetingPending(meetingId);
+
 	f(e, args); // call only non reverting paths to any function on any arguments.
 
-	uint8 stateAfter = getStateById(meetingId);
     uint256 startTimeAfter = getStartTimeById(meetingId);
     uint256 endTimeAfter = getEndTimeById(meetingId);
 
-	assert (is_pending(stateBefore) && is_started(stateAfter)) => startTimeAfter <= e.block.timestamp, "started a meeting before the designated starting time.";
-	assert (is_pending(stateBefore) && is_started(stateAfter)) => endTimeAfter > e.block.timestamp, "started a meeting after the designated end time.";
-
+	assert (meetingStarted(meetingId)) => startTimeAfter <= e.block.timestamp, "started a meeting before the designated starting time.";
+	assert (meetingStarted(meetingId)) => endTimeAfter > e.block.timestamp, "started a meeting after the designated end time.";
 }
 
 
@@ -71,14 +105,13 @@ rule startOnTime(method f, uint256 meetingId) {
 rule checkStartedToStateTransition(method f, uint256 meetingId) {
 	env e;
 	calldataarg args;
-	uint8 stateBefore = getStateById(meetingId);
+
+    require meetingStarted(meetingId);
 
 	f(e, args);
 
-    uint8 stateAfter = getStateById(meetingId);
-
-	assert (is_started(stateBefore) => (is_started(stateAfter) || is_ended(stateAfter))), "the status of the meeting changed from STARTED to an invalid state";
-	assert ((is_started(stateBefore) && is_ended(stateAfter)) => f.selector == endMeeting(uint256).selector), "the status of the meeting changed from STARTED to ENDED through a function other then endMeeting()";
+	assert (meetingStarted(meetingId) || meetingEnded(meetingId)), "the status of the meeting changed from STARTED to an invalid state";
+	assert (meetingEnded(meetingId) => f.selector == endMeeting(uint256).selector), "the status of the meeting changed from STARTED to ENDED through a function other then endMeeting()";
 }
 
 
@@ -89,14 +122,13 @@ rule checkPendingToCancelledOrStarted(method f, uint256 meetingId) {
 	env e;
 	calldataarg args;
 	uint8 stateBefore = getStateById(meetingId);
+    require meetingPending(meetingId);
 
 	f(e, args);
 
-    uint8 stateAfter = getStateById(meetingId);
-
-	assert (is_pending(stateBefore) => (is_pending(stateAfter) || is_started(stateAfter) || is_cancelled(stateAfter))), "invalidation of the state machine";
-	assert ((is_pending(stateBefore) && is_started(stateAfter)) => f.selector == startMeeting(uint256).selector), "the status of the meeting changed from PENDING to STARTED through a function other then startMeeting()";
-	assert ((is_pending(stateBefore) && is_cancelled(stateAfter)) => f.selector == cancelMeeting(uint256).selector), "the status of the meeting changed from PENDING to CANCELLED through a function other then cancelMeeting()";
+	assert (meetingPending(meetingId) || meetingStarted(meetingId) || meetingCancelled(meetingId)), "invalidation of the state machine";
+	assert (meetingStarted(meetingId) => f.selector == startMeeting(uint256).selector), "the status of the meeting changed from PENDING to STARTED through a function other then startMeeting()";
+	assert (meetingCancelled(meetingId) => f.selector == cancelMeeting(uint256).selector), "the status of the meeting changed from PENDING to CANCELLED through a function other then cancelMeeting()";
 }
 
 
