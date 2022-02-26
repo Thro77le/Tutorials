@@ -1,0 +1,3 @@
+Full spec: 36 spec
+1 param rule with method flag: 27 ses
+1 param rule without method flag: 29 sec
