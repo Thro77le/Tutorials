@@ -1,4 +1,8 @@
 pragma solidity ^0.5.0;
+/*
+This example is based on a real bug from test version of the Maker MCD system
+see https://www.certora.com/blog/why-testing-is-not-enough-for-million-dollar-code.html
+*/
 
 contract TokenInterface {
 	function mint(address who, uint amount) internal;
@@ -60,7 +64,7 @@ contract AuctionImpl is TokenInterface {
 */
 	using SafeMath for uint256;
 
-	address public owner ;
+	address public owner;
 	modifier authorized { require(msg.sender == owner); _; }
 
 	struct AuctionStrcut {
@@ -96,9 +100,9 @@ contract AuctionImpl is TokenInterface {
 
 	function close(uint id)  public {
 		require(auctions[id].bid_expiry != 0 && (auctions[id].bid_expiry < now || auctions[id].end_time < now));
-		// check that supply is not close to reach a limit, there should be enough to close another similar auction
-		require(auctions[id].prize.safeAdd(auctions[id].prize) + getTotalSupply() >= getTotalSupply());
-
+		//Note: I actually didn't come up with better fix idea because the context of Auction system is not clear to me.
+		//      Although, I see how the fix in AuctionFixed.sol is better
+		require(totalSupply.safeAdd(auctions[id].prize) < 2**256-1);
 		mint(auctions[id].winner, auctions[id].prize);
 		delete auctions[id];
 	}
