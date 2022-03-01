@@ -1,8 +1,11 @@
 ## Valid states
-(None, no clear states in the system)
+Popsicle Finance is built on top of ERC20. Ay valid state of ERC20 is a valid state for Popsicle Finance i.e:
+* sum of user's supply = totalSupply
 
 ## State transitions
-(None, no clear states in the system)
+Similar to Valid State.. i.e
+* ERC20 maintains solvency
+* transfers don't inflate/deflate supply
 
 ## Variable transitions
 1. totalFeesEarnedPerShare is non-decreasing
@@ -11,7 +14,7 @@
 ## High-level properties
 User balance = ETH + LP_Token + LP_Token_Reward
 3. User balance = const when deposit + withdraw/collectFees are called && totalFees didn't increment
-4. User balance non-decreasing
+4. User balance increasing when deposit + withdraw/collectFees are called && totalFees **did** increment
 
 
 ## Unit tests
