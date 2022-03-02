@@ -59,7 +59,7 @@ contract ERC20 {
         allowance[sender][msg.sender] = sub(allowance[sender][msg.sender], amount);
 
         return true;
-    }   
+    }
 
     function increase_allowance(address to_user, uint inc_amount) external {
         require(allowance[msg.sender][msg.sender] >= inc_amount);
@@ -67,7 +67,7 @@ contract ERC20 {
         allowance[msg.sender][to_user] += inc_amount;
     }
 
-    
+
     function decrease_allowance(address from_user, uint dec_amount) external {
         require(allowance[msg.sender][from_user] >= dec_amount);
         allowance[msg.sender][from_user] -= dec_amount;
@@ -75,24 +75,24 @@ contract ERC20 {
     }
 
     /*
-     * 
+     *
      */
     function mint(address user, uint amount) internal {
-        /* 
+        /*
             user - assign the minted shares to user.
             amount - number of shares to mint.
         */
         total += amount;
-        balances[user] += amount;        
+        balances[user] += amount;
     }
 
     function burn(address user, uint amount) internal {
-        /* 
+        /*
             user - burn the shares from user.
             amount - number of shares to burn.
         */
-        
-        balances[user] -= amount;        
+
+        balances[user] -= amount;
         total -= amount;
         msg.sender.call{value: amount}("");
     }

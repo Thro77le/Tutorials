@@ -1,11 +1,11 @@
 pragma solidity ^0.8.4;
 import "./ERC20.sol";
 
-/* 
+/*
  * From the Popsicle Finance website:
- * 
- * Popsicle Finance will manage liquidity across multiple chains in order to increase capital efficiency 
- * and automatically provide its users with the highest possible yield 
+ *
+ * Popsicle Finance will manage liquidity across multiple chains in order to increase capital efficiency
+ * and automatically provide its users with the highest possible yield
  * on the assets they wish to deploy to liquidity pools.
  *
  *
@@ -13,29 +13,29 @@ import "./ERC20.sol";
  * A simplified explanation of the platform:
  *
  * Popsicle finance is an investment platform that acts as liquidity provider
- * at several liquidity pools and manage to optimize gained fees for the benefit 
+ * at several liquidity pools and manage to optimize gained fees for the benefit
  * of the investor.
- * 
+ *
  */
 
 contract PopsicleFinance is ERC20 {
     event Deposit(address user_address, uint deposit_amount);
     event Withdraw(address user_address, uint withdraw_amount);
     event CollectFees(address collector, uint totalCollected);
-    
-    
+
+
     address owner;
     uint totalFeesEarnedPerShare = 0; // total fees earned per share
 
     mapping (address => UserInfo) accounts;
-    
+
     constructor() {
         owner = msg.sender;
     }
-    
+
     struct UserInfo {
         uint feesCollectedPerShare; // the total fees per share that has been already collected
-        uint Rewards; // general "debt" of popsicle to the user 
+        uint Rewards; // general "debt" of popsicle to the user
     }
 
     // deposit assets (ETH) to the system in exchange for shares
@@ -68,7 +68,7 @@ contract PopsicleFinance is ERC20 {
         require(totalFeesEarnedPerShare >= accounts[msg.sender].feesCollectedPerShare);
         // the amount of fees (rewards) per share that have yet to be collected.
         uint fee_per_share = totalFeesEarnedPerShare - accounts[msg.sender].feesCollectedPerShare;
-        // the already counted rewards + the rewards that haven't been 
+        // the already counted rewards + the rewards that haven't been
         uint to_pay = fee_per_share * balances[msg.sender] + accounts[msg.sender].Rewards;
         // updating the indicator of collected fees
         accounts[msg.sender].feesCollectedPerShare = totalFeesEarnedPerShare;
@@ -78,7 +78,7 @@ contract PopsicleFinance is ERC20 {
         msg.sender.call{value: to_pay}("");
         emit CollectFees(msg.sender, to_pay);
     }
-    
+
     function OwnerDoItsJobAndEarnsFeesToItsClients() public payable {
         totalFeesEarnedPerShare += 1;
     }
@@ -86,5 +86,15 @@ contract PopsicleFinance is ERC20 {
     // added by certora for use in a spec - returns the deserved rewards collected up to this point.
     function assetsOf(address user) public view returns(uint) {
         return accounts[user].Rewards + balances[user] * (totalFeesEarnedPerShare - accounts[user].feesCollectedPerShare);
+    }
+
+    // added by certora for use in a spec
+    function usersSharesAccumulator(address user) public view returns(uint) {
+        return accounts[user].feesCollectedPerShare;
+    }
+
+    // added by certora for use in a spec
+    function totalSharesAccumulator() public view returns(uint) {
+        return totalFeesEarnedPerShare;
     }
 }
