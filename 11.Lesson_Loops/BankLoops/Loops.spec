@@ -53,5 +53,5 @@ rule whoChangedMyGhost(method f) {
 
 
 // The total funds in the bank is equal to the sum of all individual funds
-invariant sumFunds() 
+invariant sumFunds()
 	sumAllFunds() == getTotalFunds()
