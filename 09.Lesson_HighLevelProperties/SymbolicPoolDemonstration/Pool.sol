@@ -25,24 +25,24 @@ contract Pool is ERC20 {
     }
 
     IERC20 public asset;
-    uint256 private constant feePrecision = 10000; 
+    uint256 private constant feePrecision = 10000;
     //feeRate is up to 1%, so less than 100 as it is divided by feePrecision
-    uint256 public feeRate; 
+    uint256 public feeRate;
 
     function sharesToAmount(uint256 shares) public view returns (uint256) {
-        uint256 poolBalance = asset.balanceOf(address(this)); 
+        uint256 poolBalance = asset.balanceOf(address(this));
         return shares * poolBalance / totalSupply();
     }
 
     function amountToShares(uint256 amount) public view returns (uint256) {
-        uint256 poolBalance = asset.balanceOf(address(this));   
+        uint256 poolBalance = asset.balanceOf(address(this));
         return amount * totalSupply() / poolBalance;
     }
 
     function deposit(uint256 amount) public payable nonReentrant() returns(uint256 shares) {
         uint256 poolBalance = asset.balanceOf(address(this));
         if (totalSupply() == 0 || poolBalance == 0){
-            shares = amount; 
+            shares = amount;
         }
         else{
             shares = amountToShares(amount);
@@ -59,7 +59,7 @@ contract Pool is ERC20 {
 		asset.transferFrom(address(this), msg.sender, amountOut);
     }
 
-    function flashLoan(address receiverAddress, uint256 amount) nonReentrant() public {          
+    function flashLoan(address receiverAddress, uint256 amount) nonReentrant() public {
         uint256 totalPremium = calcPremium(amount);
         require (totalPremium != 0);
         uint256 amountPlusPremium = amount + totalPremium;
