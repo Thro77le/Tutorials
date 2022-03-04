@@ -15,11 +15,23 @@ contract TicketDepot {
 		uint256 deadline;
 	}
 
-	uint16 numEvents;
+	uint16 public numEvents;
 	address public owner;
 	uint64 public transactionFee;
 	mapping(uint16 => Event) public eventsMap;
 	mapping(bytes32 => Offering) offerings;
+
+	function getEventOwner(uint16 eventId) public view returns (address) {
+		return eventsMap[eventId].owner;
+	}
+
+	function getEventTicketPrice(uint16 eventId) public view returns (uint64) {
+		return eventsMap[eventId].ticketPrice;
+	}
+
+	function getEventTicketsRemaining(uint16 eventId) public view returns (uint16) {
+		return eventsMap[eventId].ticketsRemaining;
+	}
 
     // creates a "seller"
 	function ticketDepot(uint64 _transactionFee) public {
@@ -85,5 +97,9 @@ contract TicketDepot {
             payable(eventsMap[_eventID].attendees[_ticketID]).transfer(offerings[offerID].price);
 			eventsMap[_eventID].attendees[_ticketID] = _newAttendee;
 			delete offerings[offerID];
+	}
+
+	function certora_getContractEthBalance() public view returns (uint256) {
+		return address(this).balance;
 	}
 }
