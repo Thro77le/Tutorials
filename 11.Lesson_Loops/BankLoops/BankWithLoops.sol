@@ -16,26 +16,26 @@ library SafeMath {
 
 contract Bank {
 	using SafeMath for uint256;
-	
+
 	mapping (address => uint256) private funds;
 	uint256 private totalFunds;
-	
+
 	function deposit(uint256 amount) public payable {
 		require(msg.sender != address(0));
 		funds[msg.sender] = funds[msg.sender].safeAdd(amount);
 		totalFunds = totalFunds.safeAdd(amount);
 	}
-	
+
 	function transfer(address to, uint256 amount) public {
 		require(to!= address(0));
 		require(funds[msg.sender] > amount);
 		funds[msg.sender] = funds[msg.sender].safeSub(amount);
 		funds[to] = funds[to].safeAdd(amount);
-		
+
 	}
-	
+
 	function multiTransfer(address[] memory tos, uint256 amount) public {
-		for(uint256 i ; i < tos.length ; i++ ){
+		for (uint256 i; i < tos.length; i++) {
 			funds[msg.sender] = funds[msg.sender].safeSub(amount);
 			funds[tos[i]] = funds[tos[i]].safeAdd(amount);
 		}
@@ -44,8 +44,8 @@ contract Bank {
 
 	function multiTransferWithBug(address[] memory tos, uint256 amount) public {
 		uint256 totalToReduce = 0;
-		for(uint256 i ; i < tos.length ; i++ ){
-			totalToReduce = amount;
+		for (uint256 i; i < tos.length; i++) {
+			totalToReduce += amount;
 			funds[tos[i]] = funds[tos[i]].safeAdd(amount);
 		}
 		funds[msg.sender] = funds[msg.sender].safeSub(totalToReduce);
@@ -59,11 +59,11 @@ contract Bank {
 		require(success);
 		totalFunds = totalFunds.safeSub(amount);
 	}
-	
+
 	function getFunds(address account) public view returns (uint256) {
 		return funds[account];
 	}
-	
+
 	function getTotalFunds() public view returns (uint256) {
 		return totalFunds;
 	}
